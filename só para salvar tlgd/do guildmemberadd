@@ -1,0 +1,531 @@
+const db = require("mongo/db.js");
+const Discord = require("discord.js");
+const moment = require("moment");
+moment.locale("pt-BR");
+
+String.prototype.replaceAll = function(de, para) {
+  var str = this;
+  var pos = str.indexOf(de);
+  while (pos > -1) {
+    str = str.replace(de, para);
+    pos = str.indexOf(de);
+  }
+  return str;
+};
+
+async function newDocDB(doc, res) {
+  if (doc === "users") {
+    var usuarios = new db.Users({
+      _id: res.id,
+      rep: 0,
+      star: 0,
+      aboboras: 0,
+      starTime: 0,
+      repTime: 0,
+      assauntTime: 0,
+      batalhar: 0,
+      bio: "",
+      coins: 0,
+      rubys: 0,
+      emerald: 0,
+      containers: 0,
+      goldbox: 0,
+      background: "",
+      casou: "",
+      balance_background: "",
+      shopped_background: "no",
+      usernames: false,
+      names: [],
+      nicks: [],
+      adv: 0,
+      adv_motivos: [],
+      lock: true,
+      lockgenre: true,
+      back: "",
+      credit: 0,
+      skin: "",
+      block: "",
+      rolUserAdv: false,
+      rolUserAdv1: false,
+      rolUserAdv2: false
+    });
+    usuarios.save();
+  }
+}
+
+module.exports = async (client, member) => {
+  var criando = id => {
+    let ctr = new db.Guilds({
+      _id: member.guild.id,
+      bot: false,
+      autorolebot: [],
+      contaS: 0,
+      msgDeleteBv: 0,
+      msgDeleteDm: 0,
+      msgDeleteBye: 0,
+      apng: false,
+      rolAdv: "",
+      rolAdv1: "",
+      rolAdv2: ""
+    });
+    ctr.save();
+    return ctr;
+  };
+
+
+  var yae = await db.Guilds.findOne({ _id: member.guild.id });
+  if (!yae) {
+    yae = criando(member.guild.id);
+  }
+  var xy = member.user.createdAt;
+  var mtv = `${
+    member.user.tag
+  } foi expulso(a) automaticamente do servidor. Bloqueador de contas criadas (fakes)  ativo. Conta de ${
+    member.user.tag
+  } criada em ${moment(xy).format("LL")}`;
+  if (!yae && !yae.contaS) return;
+  if (yae && yae.contaS) {
+    let daysJoined = moment().diff(member.user.createdAt, "days");
+    if (daysJoined <= yae.contaS) {
+      if (member.user) {
+        member.kick(mtv);
+        let xyz = member.user.createdAt;
+        var info = new Discord.MessageEmbed()
+          .setAuthor("Logs | Contas Secundárias")
+          .setThumbnail(member.user.avatarURl)
+          .setDescription(`Suposta conta fake encontrada:`)
+          .addField(` Nome:`, `**${member.user.tag}**`, true)
+          .addField(`ID:`, `${member.user.id}`, true)
+          .addField(` Conta criada em:`, `${moment(xyz).format("LL")}`, false)
+          .setColor("4959E9");
+        if (
+          yae.logg_fakes &&
+          client.guilds.cache.get(member.guild.id).channels.cache.get(yae.logg_fakes)
+        ) {
+          client.guilds
+            .cache.get(member.guild.id)
+            .channels.cache.get(yae.logg_fakes)
+            .send({ embed: info });
+        }
+      }
+    }
+  }
+
+  const { get } = require("snekfetch");
+  if (yae && yae.apng) {
+    get(member.displayAvatarURL({dynamic: true})).then(res => {
+      let buffer = res.body.toString();
+      let idatOc = buffer.split("IDAT");
+      let isApng = false;
+
+      if (idatOc.length > 1) isApng = idatOc[1].includes("acTL");
+      else if (idatOc.length === 1) isApng = buffer.includes("acTL");
+
+      if (isApng) {
+        member.kick("APNG é contra as regras do Discord!");
+      }
+    });
+  }
+
+  var sysop = await db.Guilds.findOne({ _id: member.guild.id });
+
+  if (!sysop) {
+    sysop = criando(member.guild.id);
+  }
+
+  if (!sysop && sysop.bot) return;
+  var bloqueador = "Foi expulso do servidor - Bloqueador de bots ativo.";
+  if (sysop && sysop.bot) {
+    if (member.user.bot) {
+      member.kick(bloqueador);
+    }
+  }
+
+  if (member.guild) {
+    db.Guilds.findOne({ _id: member.guild.id }, function(erra, sysop) {
+      if (
+        !sysop &&
+        !sysop.autorole &&
+        !sysop.autoroleArray &&
+        !sysop.autorolebot
+      )
+        return;
+      if (sysop && sysop.autorolebot && member.user.bot) {
+        sysop.autorolebot.forEach(async owo => await member.addRole(owo));
+      }
+      if (sysop && sysop.autorole && sysop.autoroleArray) {
+        member.roles.add(sysop.autorole).catch(() => {});
+        sysop.autoroleArray.forEach(async role => await member.addRole(role));
+        sysop.save();
+      }
+    });
+  }
+
+  db.Guilds.findOne(
+    {
+      _id: member.guild.id
+    },
+    function(erra, sysop) {
+      if (!sysop) return;
+      if (!sysop.welcomeChannel) return;
+      if (!sysop.welcome) return;
+      if (
+        !client.guilds.cache.get(member.guild.id).channels.cache.get(sysop.welcomeChannel)
+      )
+        return;
+      let xyz = member.user.createdAt;
+      if (sysop) {
+        sysop.welcome = sysop.welcome
+          .replaceAll("{conta-criada}", moment(xyz).format("LL"))
+          .replaceAll("{server-icon}", member.guild.iconURL)
+          .replaceAll("{user}", member.user.username)
+          .replaceAll("{server}", member.guild.name)
+          .replace("{mention}", `${member.user}`)
+          .replaceAll("{user-icon}", member.user.displayAvatarURL)
+          .replaceAll("{user-id}", member.user.id);
+        try {
+          let a = JSON.parse(sysop.welcome);
+          if (a.embed.color) a.embed.color = parseInt(a.embed.color);
+          if (a.content) a.content = a.content.slice(0, 2000);
+          if (a.embed.title) a.embed.title = a.embed.title.slice(0, 1024);
+          if (a.embed.description)
+            a.embed.description = a.embed.description.slice(0, 1024);
+          if (a.embed.fields) a.embed.fields = a.embed.fields.slice(0, 1024);
+          if (a.embed.footer)
+            a.embed.footer.text = a.embed.footer.text.slice(0, 1024);
+          if (a.embed.author)
+            a.embed.author.name = a.embed.author.name.slice(0, 1024);
+          if (a.content) {
+            client.guilds.cache
+              .get(member.guild.id)
+              .channels.cache.get(sysop.welcomeChannel)
+              .send(a.content, { embed: a.embed })
+              .then(msg => {
+                if (sysop.msgDeleteBv) msg.delete(sysop.msgDeleteBv);
+              });
+          } else {
+            client.guilds.cache
+              .get(member.guild.id)
+              .channels.cache.get(sysop.welcomeChannel)
+              .send({ embed: a.embed })
+              .then(msg => {
+                if (sysop.msgDeleteBv) msg.delete(sysop.msgDeleteBv);
+              })
+              .catch(e => console.log(e));
+          }
+        } catch (e) {
+          client.guilds.cache
+            .get(member.guild.id)
+            .channels.cache.get(sysop.welcomeChannel)
+            .send(sysop.welcome)
+            .then(msg => {
+              if (sysop.msgDeleteBv) msg.delete(sysop.msgDeleteBv);
+            })
+            .catch(e => console.log(e));
+        }
+      }
+    }
+  );
+
+  db.Guilds.findOne({ _id: member.guild.id }, function(erra, sysop) {
+    if (!sysop) return;
+    if (!sysop.dm) return;
+    let xyz = member.user.createdAt;
+    if (sysop) {
+      sysop.dm = sysop.dm
+        .replaceAll("{conta-criada}", moment(xyz).format("LL"))
+        .replaceAll("{server-icon}", member.guild.iconURL)
+        .replaceAll("{user}", member.user.username)
+        .replaceAll("{server}", member.guild.name)
+        .replace("{mention}", `${member.user}`)
+        .replaceAll("{user-icon}", member.user.displayAvatarURL)
+        .replaceAll("{user-id}", member.user.id);
+      try {
+        let a = JSON.parse(sysop.dm);
+        if (a.embed.color) a.embed.color = parseInt(a.embed.color);
+        if (a.content) a.content = a.content.slice(0, 2000);
+        if (a.embed.title) a.embed.title = a.embed.title.slice(0, 1024);
+        if (a.embed.description)
+          a.embed.description = a.embed.description.slice(0, 1024);
+        if (a.embed.fields) a.embed.fields = a.embed.fields.slice(0, 1024);
+        if (a.embed.footer)
+          a.embed.footer.text = a.embed.footer.text.slice(0, 1024);
+        if (a.embed.author)
+          a.embed.author.name = a.embed.author.name.slice(0, 1024);
+        if (a.content) {
+          client.users.cache
+            .get(member.id)
+            .send(a.content, { embed: a.embed })
+            .then(sentMsg => {
+              if (sysop.msgDeleteDm) sentMsg.delete(sysop.msgDeleteDm);
+            });
+        } else {
+          client
+            .getUser(member.id)
+            .send({ embed: a.embed })
+            .then(sentMsg => {
+              if (sysop.msgDeleteDm) sentMsg.delete(sysop.msgDeleteDm);
+            })
+            .catch(e => console.log(e));
+        }
+      } catch (e) {
+        client.users.cache
+          .get(member.id)
+          .send(sysop.dm)
+          .then(sentMsg => {
+            if (sysop.msgDeleteDm) sentMsg.delete(sysop.msgDeleteDm);
+          })
+          .catch(e => console.log(e));
+      }
+    }
+  });
+
+  db.Guilds.findOne({ _id: member.guild.id }, function(erro, kael) {
+    if (!kael && !kael.fakes) return;
+    if (kael && kael.fakes) {
+      let daysJoined = moment().diff(member.user.createdAt, "days");
+      let xyz = member.user.createdAt;
+      console.log(daysJoined);
+      if (daysJoined <= kael.contaS ? kael.contasS : 1) {
+        var info = new Discord.MessageEmbed()
+          .setAuthor("Logs | Contas Secundárias")
+          .setThumbnail(member.user.avatarURl)
+          .setDescription(`Suposta conta fake encontrada:`)
+          .addField(` Nome:`, `**${member.user.tag}**`, true)
+          .addField(` ID:`, `${member.user.id}`, true)
+          .addField(`Conta criada em:`, `${moment(xyz).format("LL")}`, false)
+          .setColor("4959E9");
+      }
+      if (
+        kael.logg_fakes &&
+        client.guilds.cache.get(member.guild.id).channels.cache.get(yae.logg_fakes)
+      ) {
+        client.guilds.cache
+          .cache.get(member.guild.id)
+          .channels.cache.get(yae.logg_fakes)
+          .send({ embed: info });
+      }
+    }
+  });
+  
+const invites = {};
+  member.guild.fetchInvites().then(guildInvites => {
+    const ei = invites[member.guild.id];
+    invites[member.guild.id] = guildInvites;
+    const invite = guildInvites.find(i => ei.get(i.code).uses < i.uses);
+    const inviter = client.users.cache.get(invite.inviter.id);
+    const logg = client.guilds.cache.get('688137801363226676').channels.cache.get('772463631421014017')
+    logg.send(`${member.user} entrou no servidor utilizando o convite **${invite.code}** de ${inviter.tag}.`);
+  });	
+
+  /// /
+
+  let createAccount = id => {
+    let pessoa = new db.Users({
+      _id: id,
+      rep: 0,
+      star: 0,
+      aboboras: 0,
+      starTime: 0,
+      repTime: 0,
+      assauntTime: 0,
+      batalhar: 0,
+      bio: "",
+      coins: 0,
+      rubys: 0,
+      emerald: 0,
+      containers: 0,
+      goldbox: 0,
+      background: "",
+      casou: "",
+      balance_background: "",
+      shopped_background: "no",
+      usernames: false,
+      names: [],
+      nicks: [],
+      adv: 0,
+      adv_motivos: [],
+      lock: true,
+      lockgenre: true,
+      back: "",
+      credit: 0,
+      skin: "",
+      block:""
+    });
+
+    pessoa.save();
+    return pessoa;
+  };
+
+   
+  var aa = await db.Guilds.findOne({ _id: member.guild.id });
+
+  db.Users.findOne(
+    {
+      _id: member.id
+    },
+    function(erro, doc) {
+      if (!doc) {
+        doc = createAccount(member.id);
+      }
+
+      if (!doc && !doc.rolUserAdv && !doc.rolUserAdv1 && !doc.rolUserAdv2)
+        return;
+      //  if(doc && doc.rolUserAdv && doc.rolUserAdv1 && doc.rolUserAdv2) {
+      if (doc.rolUserAdv) {
+        member
+          .roles.add(
+            yae.rolAdv,
+            "Já estava com Advertências, saiu para tentar se livrar."
+          )
+          .catch(() => {});
+      }
+      if (doc.rolUserAdv1) {
+        member
+          .roles.add(
+            yae.rolAdv1,
+            "Já estava com Advertências, saiu para tentar se livrar."
+          )
+          .catch(() => {});
+      }
+      if (doc.rolUserAdv2) {
+        member
+          .roles.add(
+            yae.rolAdv2,
+            "Já estava com Advertências, saiu para tentar se livrar."
+          )
+          .catch(() => {});
+      }
+
+       
+      var moment = require("moment");
+      moment.locale("pt-BR");
+
+      let color = {
+        online: "#2eff6e",
+        idle: "#ffa92e",
+        dnd: "#ff2e2e",
+        offline: "#b4b4b4",
+        stream: "#923eff"
+      };
+
+      let acc = member.user.createdAt;
+      let usernames = doc.names.slice(doc.names.length - 25).join("\n");
+
+      const embed = new Discord.MessageEmbed()
+        .setThumbnail(member.user.avatarURL({dynamic: true}))
+        .setAuthor("Informes | Entrada de Usuário", client.user.avatarURL)
+        .setTitle(`Também conhecido(a) como:`)
+        .setDescription(
+          `${usernames || "Este usuário não possui nomes antigos."}`
+        )
+        .addField(
+          "🕹️ Jogando:",
+          `\`\`\`https\n ${
+            member.presence.game != null ? member.presence.game.name : "Nada"
+          }\`\`\``,
+          false
+        )
+        .addField(
+          "💻 Nome do usuário:",
+          `\`\`\`diff\n- ${member.user.username}-\`\`\``,
+          true
+        )
+        .addField("🔢 ID do usuário:", `\`\`\`${member.id}\`\`\``, true)
+        .addField("📲 Conta criada em:", `${moment(acc).format("LL")} `, true)
+        .addField(
+          "🌎 Servidores compartilhados:",
+          `\`\`${
+            client.guilds.cache
+              .filter(a => a.members.cache.get(member.id))
+              .array()
+              .join(", ").length < 1000
+              ? client.guilds.cache
+                  .filter(a => a.members.cache.get(member.id))
+                  .map(a => a.name)
+                  .join(", ")
+              : "Parece que os servidores compartilhados são tantos que não consegui espaço aqui."
+          }\`\``,
+          false
+        )
+        .setColor("4959E9");
+      if (
+        aa.logg_mGA &&
+        client.guilds.cache.get(member.guild.id).channels.cache.get(aa.logg_mGA)
+      ) {
+        client.guilds.cache
+          .get(member.guild.id)
+          .channels.cache.get(aa.logg_mGA)
+          .send({ embed });
+      }
+    }
+  );
+
+   db.Guilds.findOne({
+    '_id': member.guild.id},
+  function (erra, sysop) {
+    if (!sysop) return
+    if (!sysop.numero) return;
+    if (!sysop.txt) return;
+    if (!client.guilds.cache.get(member.guild.id).channels.cache.get(sysop.numero)) return
+    if (sysop) {
+      if (!member.guild.member(client.user).hasPermission(['MANAGE_CHANNELS'])) return
+      let membross = client.guilds.cache.get(member.guild.id).memberCount.toString()
+      let preto = membross.split('').map(i => ['<:zero6:509041031199588377>', '<:um6:509041030784614401>', '<:dois6:509041027777036288>', '<:tres6:509041030692077568>', '<:quatro6:509041028607770644>', '<:cinco6:509041027567321119>', '<:seis6:509041028674879488>', '<:sete6:509041030738477074>', '<:oito6:509041028154785815>', '<:nove9:509041028146135050>'][i]).join('')
+
+      // Premium - Contador Cobalto
+      let azul = membross.split('').map(i => ['<a:0A:531733395756023809>', '<a:1A:531733322724933645>', '<a:2A:531733363623591956>', '<a:3A:531733402618167296>', '<a:4A:531733401254756352>', '<a:5A:531733397895249921>', '<a:6A:531733401925845002>', '<a:7A:531733399472308225>', '<a:8A:531733399636017162>', '<a:9A:531733400550375425>'][i]).join('')
+      let laranja = membross.split('').map(i => ['<a:0B:531733395898892308>', '<a:1B:531733352764669972>', '<a:2B:531733361434296321>', '<a:3B:531733387615141921>', '<a:4B:531733397366636555>', '<a:5B:531733397710569473>', '<a:6B:531733399086563348>', '<a:7B:531733398381920256>', '<a:8B:531733397761032192>', '<a:9B:531733401468796935>'][i]).join('')
+      let roxo = membross.split('').map(i => ['<a:0D:531733400244191242>', '<a:1D:531733359773089802>', '<a:2D:531733401892290561>', '<a:3D:531733392014704648>', '<a:4D:531733397073166346>', '<a:5D:531733399082369034>', '<a:6D:531733400751570954>', '<a:7D:531733398746562590>', '<a:8D:531733400789319691>', '<a:9D:531733401477054494>'][i]).join('')
+      let verde = membross.split('').map(i => ['<a:0C:531733399824498689>', '<a:1C:531733359424962570>', '<a:2C:531733401708003328>', '<a:3C:531733401854803998>', '<a:4C:531733401028263937>', '<a:5C:531733402219708417>', '<a:6C:531733402844528640>', '<a:7C:531733402685145088>', '<a:8C:531733402358120459>', '<a:9C:531733402370703362>'][i]).join('')
+
+      let mensagem = sysop.txt.replace(/\{preto\}/gi, preto).replace(/\{PRETO\}/gi, preto)
+        .replace(/\{roxo\}/gi, roxo).replace(/\{ROXO\}/gi, roxo)
+        .replace(/\{verde\}/gi, verde).replace(/\{VERDE\}/gi, verde)
+        .replace(/\{preto\}/gi, preto).replace(/\{PRETO\}/gi, preto)
+        .replace(/\{azul\}/gi, azul).replace(/\{AZUL\}/gi, azul)
+      client.guilds.cache.get(member.guild.id).channels.cache.get(sysop.numero).edit({ topic: `${mensagem}`})
+    }
+  })
+  db.Guilds.findOne(
+    {
+      _id: member.guild.id
+    },
+    function(erra, sysop) {
+      if (!sysop) return;
+      if (!sysop.beta) return;
+      if (!sysop.txt) return;
+      if (!sysop.beta.some(canal => member.guild.channels.cache.get(canal))) return;
+      if (sysop) {
+        if (
+          !member.guild.member(client.user).hasPermission(["MANAGE_CHANNELS"])
+        )
+          return;
+
+        let membross = client.guilds.cache
+          .get(member.guild.id)
+          .memberCount.toString();
+            let preto = membross.split('').map(i => ['<:zero6:509041031199588377>', '<:um6:509041030784614401>', '<:dois6:509041027777036288>', '<:tres6:509041030692077568>', '<:quatro6:509041028607770644>', '<:cinco6:509041027567321119>', '<:seis6:509041028674879488>', '<:sete6:509041030738477074>', '<:oito6:509041028154785815>', '<:nove9:509041028146135050>'][i]).join('')
+
+      // Premium - Contador Cobalto
+      let azul = membross.split('').map(i => ['<a:0A:531733395756023809>', '<a:1A:531733322724933645>', '<a:2A:531733363623591956>', '<a:3A:531733402618167296>', '<a:4A:531733401254756352>', '<a:5A:531733397895249921>', '<a:6A:531733401925845002>', '<a:7A:531733399472308225>', '<a:8A:531733399636017162>', '<a:9A:531733400550375425>'][i]).join('')
+      let laranja = membross.split('').map(i => ['<a:0B:531733395898892308>', '<a:1B:531733352764669972>', '<a:2B:531733361434296321>', '<a:3B:531733387615141921>', '<a:4B:531733397366636555>', '<a:5B:531733397710569473>', '<a:6B:531733399086563348>', '<a:7B:531733398381920256>', '<a:8B:531733397761032192>', '<a:9B:531733401468796935>'][i]).join('')
+      let roxo = membross.split('').map(i => ['<a:0D:531733400244191242>', '<a:1D:531733359773089802>', '<a:2D:531733401892290561>', '<a:3D:531733392014704648>', '<a:4D:531733397073166346>', '<a:5D:531733399082369034>', '<a:6D:531733400751570954>', '<a:7D:531733398746562590>', '<a:8D:531733400789319691>', '<a:9D:531733401477054494>'][i]).join('')
+      let verde = membross.split('').map(i => ['<a:0C:531733399824498689>', '<a:1C:531733359424962570>', '<a:2C:531733401708003328>', '<a:3C:531733401854803998>', '<a:4C:531733401028263937>', '<a:5C:531733402219708417>', '<a:6C:531733402844528640>', '<a:7C:531733402685145088>', '<a:8C:531733402358120459>', '<a:9C:531733402370703362>'][i]).join('')
+
+      
+      let mensagem = sysop.txt
+        .replace(/\{azul\}/gi, azul)
+        .replace(/\{laranja\}/gi, laranja)
+        .replace(/\{roxo\}/gi, roxo)
+        .replace(/\{verde\}/gi, verde)
+         sysop.beta.forEach(canal => member.guild.channels.cache.get(canal).setTopic(`${mensagem}`))
+        sysop.beta.forEach(
+          canal =>
+            member.guild.channels.cache.has(canal) &&
+            member.guild.channels.cache.get(canal).setTopic(mensagem)
+        );
+      }
+    }
+  );
+};

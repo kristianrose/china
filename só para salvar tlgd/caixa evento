@@ -1,0 +1,74 @@
+
+client.on('message', message => {
+  if(message.author.bot) return;
+  if(message.guild == null) return;
+
+
+  database.ref(`Servidores/${message.guild.id}`)
+  .once('value').then(async function(snap){
+    let Caixa = snap.val().Caixa;
+    let Caixatipo = snap.val().Caixatipo;
+
+    let prc = Math.round(Math.random() * 1340)
+    if (prc == 133) {
+
+
+      database.ref(`Servidores/${message.guild.id}/`)
+      .update({
+          Caixa: snap.val().Caixa = 1,
+          Caixatipo: snap.val().Caixatipo = 'Lendaria',
+        })
+
+
+        let embedlendaria = new Discord.MessageEmbed()
+        .setColor('4959E9')
+        .setTitle('**<:box:805423264402112523> Uma caixa lendaria foi dropada!**')
+        .setDescription('**<:box:805423264402112523> Rápido! pege-a antes que todos! \n Use: \`i!getbox\` para capturá-la.')
+        message.channel.send(embedlendaria)
+    } else if(prc == 1333) {
+
+
+      database.ref(`Servidores/${message.guild.id}/`)
+      .update({
+          Caixa: snap.val().Caixa = 1,
+          Caixatipo: snap.val().Caixatipo = 'Epica',
+        })
+
+
+        let embedepica = new Discord.MessageEmbed()
+        .setColor('4959E9')
+        .setTitle('**<:box:805423264402112523> Uma caixa epica foi dropada!**')
+        .setDescription('**<:box:805423264402112523> Rápido! pege-a antes que todos! \n Use: \`i!getbox\` para capturá-la.')
+        message.channel.send(embedepica)
+    } else if(prc == 1339) {
+
+      database.ref(`Servidores/${message.guild.id}/`)
+      .update({
+          Caixa: snap.val().Caixa = 1,
+          Caixatipo: snap.val().Caixatipo = 'Rara',
+        })
+
+
+        let embedrara = new Discord.MessageEmbed()
+        .setColor('4959E9')
+        .setTitle('**<:box:805423264402112523> Uma caixa rara foi dropada!**')
+        .setDescription('**<:box:805423264402112523> Rápido! pege-a antes que todos! \n Use: \`i!getbox\` para capturá-la.')
+        message.channel.send(embedrara)
+    } else if(prc == 1339) {
+
+      database.ref(`Servidores/${message.guild.id}/`)
+      .update({
+          Caixa: snap.val().Caixa = 1,
+          Caixatipo: snap.val().Caixatipo = 'Comum',
+        })
+
+
+        let embedcomum = new Discord.MessageEmbed()
+        .setColor('4959E9')
+        .setTitle('**<:box:805423264402112523> Uma caixa comum foi dropada!**')
+        .setDescription('**<:box:805423264402112523> Rápido! pege-a antes que todos! \n Use: \`k.getbox\` para capturá-la.')
+        message.channel.send(embedcomum)
+
+    }
+  })
+})
